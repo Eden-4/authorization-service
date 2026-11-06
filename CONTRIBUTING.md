@@ -106,6 +106,7 @@ Then create a Pull Request on GitHub with:
 3. Push updated code
 4. Request re-review
 ## Code Standards
+Architecture, layering, and coding conventions are documented in [`AGENTS.md`](AGENTS.md). It is written for coding agents but applies to all contributors.
 ### Go Style
 ```go
 // Good
@@ -113,7 +114,7 @@ func (s *Service) CheckAuthorization(ctx context.Context, req *CheckRequest) (*C
     if req == nil {
         return nil, fmt.Errorf("request cannot be nil")
     }
-    s.logger.Info("Checking authorization", "user", req.User, "resource", req.Resource)
+    s.logger.InfoContext(ctx, "Checking authorization", "user", req.User, "resource", req.Resource)
     // Implementation
     return &CheckResponse{Allowed: true}, nil
 }
@@ -138,9 +139,9 @@ if err != nil {
 ```
 ### Logging
 ```go
-// Good - structured logging
-logger.Info("Cache hit", "key", cacheKey, "ttl_remaining", ttl)
-logger.Error("Failed to connect", "error", err, "service", "OpenFGA")
+// Good - structured logging with request context
+logger.InfoContext(ctx, "Cache hit", "key", cacheKey, "ttl_remaining", ttl)
+logger.ErrorContext(ctx, "Failed to connect", "error", err, "service", "OpenFGA")
 // Bad
 fmt.Println("Error:", err)
 log.Printf("Something happened")
@@ -153,7 +154,7 @@ Unit tests are co-located with source code (same package) and use [uber-go/mock]
 **File location:** `internal/service/{package}/service_test.go`
 
 ```go
-//go:generate mockgen -source=../../integrations/valkey/client.go -destination=mocks/mock_valkey.go -package=mocks CacheClient
+//go:generate mockgen -source=../../integration/valkey/client.go -destination=mocks/mock_valkey.go -package=mocks
 
 package myservice
 
@@ -163,8 +164,8 @@ func TestServiceCheck(t *testing.T) {
     ctrl := gomock.NewController(t)
     defer ctrl.Finish()
     
-    mockCache := mocks.NewMockCacheClient(ctrl)
-    mockCache.EXPECT().Get(gomock.Any(), gomock.Any()).Return("", gomock.Any()).Times(1)
+    mockCache := mocks.NewMockCacheClientInterface(ctrl)
+    mockCache.EXPECT().Get(gomock.Any(), gomock.Any()).Return("", nil).Times(1)
     
     svc := NewService(mockCache, logger)
     resp, err := svc.Check(context.Background(), &CheckRequest{
@@ -188,13 +189,14 @@ make test   # Run tests (auto-regenerates mocks)
 
 ## Adding New Features
 ### New Integration Service
-1. Create package under `internal/integrations/`
+1. Create package under `internal/integration/`
 2. Define client interface
 3. Implement client
-4. Add configuration to `cmd/serve.go`
-5. Initialize in `initializeIntegrations()`
-6. Document in README.md
-7. Add tests
+4. Add configuration and component validation to `config/specs.go`, and defaults and environment bindings to `config/viper.go`
+5. Initialize the client in `config.InitializeIntegrations` in `config/helper.go`, guarded by the requested component
+6. Ensure each command that needs the integration requests its component through `config.LoadConfigFor`
+7. Document in README.md
+8. Add tests
 ### New gRPC Service
 1. Update `api/proto/v1/service.proto`
 2. Add service methods
@@ -205,12 +207,13 @@ make test   # Run tests (auto-regenerates mocks)
 7. Document API endpoints
 8. Add tests
 ### Configuration Changes
-1. Add field to config struct in `cmd/serve.go`
-2. Use envconfig tags: `envconfig:"VAR_NAME" default:"value"`
-3. Update README.md Configuration section
-4. Update `.env.example`
-5. Update DEVELOPMENT.md if architectural change
-6. Add tests if validation logic added
+1. Add fields to the relevant config struct in `config/specs.go`, using `mapstructure` tags and validation tags where needed
+2. Update defaults and environment bindings in `config/viper.go`; Viper loads defaults from `setViperDefaults`, not struct `default` tags
+3. Update component validation in `config/specs.go` and the `config.LoadConfigFor` component lists in affected commands as needed
+4. Update README.md Configuration section
+5. Update `.env.example`
+6. Update DEVELOPMENT.md if architectural change
+7. Add tests for configuration loading and validation changes
 ## Pull Request Checklist
 Before submitting a PR, verify:
 - [ ] Code follows Go style guide (`go fmt`, `go vet`)
