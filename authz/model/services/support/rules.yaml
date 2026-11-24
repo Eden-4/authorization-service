@@ -1,6 +1,6 @@
 version: "1"
 service: support
-revision: "2026.11.23.1"
+revision: "2026.11.24.1"
 description: |
   Route protection rules for the support app (/support), mirroring the Zeus gateway
   resources. Catch-alls use priority 1000 so specific rules (100) always win.
@@ -13,7 +13,7 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: platform
+        object_resource_type: service
         object_resource_id: portal
 
   - method: GET
@@ -22,7 +22,7 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: platform
+        object_resource_type: service
         object_resource_id: portal
 
   # ─── API catch-all: GET only, writes are listed per area ────────────────────
