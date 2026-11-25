@@ -1,15 +1,16 @@
 version: "1"
 service: support
-revision: "2026.11.24.1"
+revision: "2026.11.25.2"
 description: |
   Route protection rules for the support app (/support), mirroring the Zeus gateway
-  resources. Catch-alls use priority 1000 so specific rules (100) always win.
+  resources. Priorities: 2000 page shell, 1000 API GET catch-all, 500 area
+  catch-alls, 100 exact rules.
 
 rules:
   # ─── Pages (SPA shell) ──────────────────────────────────────────────────────
   - method: GET
     match: '/support'
-    priority: 1000
+    priority: 2000
     tuples:
       - user_resource_type: user
         permission: can_access
@@ -18,7 +19,7 @@ rules:
 
   - method: GET
     match: '/support/**'
-    priority: 1000
+    priority: 2000
     tuples:
       - user_resource_type: user
         permission: can_access
@@ -27,22 +28,40 @@ rules:
 
   # ─── API catch-all: GET only, writes are listed per area ────────────────────
   - method: GET
+    match: '/support/api'
+    priority: 100
+    tuples:
+      - user_resource_type: user
+        permission: can_access
+        object_resource_type: support_feature
+        object_resource_id: knowledgeBase
+
+  - method: GET
     match: '/support/api/**'
     priority: 1000
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: knowledgeBase
 
   # ─── Access administration ──────────────────────────────────────────────────
+  - method: GET
+    match: '/support/api/knowledge-base-access'
+    priority: 100
+    tuples:
+      - user_resource_type: user
+        permission: can_administer
+        object_resource_type: support_feature
+        object_resource_id: admin
+
   - method: GET
     match: '/support/api/knowledge-base-access/access'
     priority: 100
     tuples:
       - user_resource_type: user
         permission: can_administer
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: admin
 
   - method: POST
@@ -51,7 +70,7 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_administer
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: admin
 
   - method: DELETE
@@ -60,7 +79,25 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_administer
-        object_resource_type: support/feature
+        object_resource_type: support_feature
+        object_resource_id: admin
+
+  - method: GET
+    match: '/support/api/knowledge-base-access/**'
+    priority: 500
+    tuples:
+      - user_resource_type: user
+        permission: can_administer
+        object_resource_type: support_feature
+        object_resource_id: admin
+
+  - method: GET
+    match: '/support/api/firefighting-access'
+    priority: 100
+    tuples:
+      - user_resource_type: user
+        permission: can_administer
+        object_resource_type: support_feature
         object_resource_id: admin
 
   - method: GET
@@ -69,7 +106,7 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_administer
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: admin
 
   - method: POST
@@ -78,7 +115,7 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_administer
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: admin
 
   - method: DELETE
@@ -87,7 +124,16 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_administer
-        object_resource_type: support/feature
+        object_resource_type: support_feature
+        object_resource_id: admin
+
+  - method: GET
+    match: '/support/api/firefighting-access/**'
+    priority: 500
+    tuples:
+      - user_resource_type: user
+        permission: can_administer
+        object_resource_type: support_feature
         object_resource_id: admin
 
   - method: GET
@@ -96,7 +142,7 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_administer
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: admin
 
   - method: POST
@@ -105,7 +151,7 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_administer
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: admin
 
   - method: DELETE
@@ -114,91 +160,127 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_administer
-        object_resource_type: support/feature
+        object_resource_type: support_feature
+        object_resource_id: admin
+
+  - method: GET
+    match: '/support/api/support-admin/**'
+    priority: 500
+    tuples:
+      - user_resource_type: user
+        permission: can_administer
+        object_resource_type: support_feature
         object_resource_id: admin
 
   # ─── Firefighting ───────────────────────────────────────────────────────────
   - method: GET
-    match: '/support/api/firefighting/**'
-    priority: 1000
+    match: '/support/api/firefighting'
+    priority: 100
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
+        object_resource_id: firefighting
+
+  - method: GET
+    match: '/support/api/firefighting/**'
+    priority: 500
+    tuples:
+      - user_resource_type: user
+        permission: can_access
+        object_resource_type: support_feature
         object_resource_id: firefighting
 
   - method: POST
     match: '/support/api/firefighting/**'
-    priority: 1000
+    priority: 500
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: firefighting
 
   - method: PATCH
     match: '/support/api/firefighting/**'
-    priority: 1000
+    priority: 500
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: firefighting
 
   # ─── Storage (firefighting coverage files) ──────────────────────────────────
   - method: GET
-    match: '/support/api/storage/**'
-    priority: 1000
+    match: '/support/api/storage'
+    priority: 100
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
+        object_resource_id: firefighting
+
+  - method: GET
+    match: '/support/api/storage/**'
+    priority: 500
+    tuples:
+      - user_resource_type: user
+        permission: can_access
+        object_resource_type: support_feature
         object_resource_id: firefighting
 
   - method: POST
     match: '/support/api/storage/**'
-    priority: 1000
+    priority: 500
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: firefighting
 
   - method: PUT
     match: '/support/api/storage/**'
-    priority: 1000
+    priority: 500
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: firefighting
 
   # ─── Staff (Managed Solutions) ──────────────────────────────────────────────
   - method: GET
-    match: '/support/api/staff/**'
-    priority: 1000
+    match: '/support/api/staff'
+    priority: 100
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
+        object_resource_id: managedSolutions
+
+  - method: GET
+    match: '/support/api/staff/**'
+    priority: 500
+    tuples:
+      - user_resource_type: user
+        permission: can_access
+        object_resource_type: support_feature
         object_resource_id: managedSolutions
 
   - method: POST
     match: '/support/api/staff/**'
-    priority: 1000
+    priority: 500
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: managedSolutions
 
   - method: PATCH
     match: '/support/api/staff/**'
-    priority: 1000
+    priority: 500
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: managedSolutions
 
   - method: PATCH
@@ -207,7 +289,7 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_administer
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: managedSolutions
 
   - method: PATCH
@@ -216,17 +298,17 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_administer
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: managedSolutions
 
   # ─── Knowbot ────────────────────────────────────────────────────────────────
   - method: POST
     match: '/support/api/knowbot/**'
-    priority: 1000
+    priority: 500
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: knowledgeBase
 
   # ─── Tickets, account and profile writes ────────────────────────────────────
@@ -236,52 +318,52 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: knowledgeBase
 
   - method: POST
     match: '/support/api/ticket/**'
-    priority: 1000
+    priority: 500
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: knowledgeBase
 
   - method: PATCH
     match: '/support/api/ticket/**'
-    priority: 1000
+    priority: 500
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: knowledgeBase
 
   - method: DELETE
     match: '/support/api/ticket/**'
-    priority: 1000
+    priority: 500
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: knowledgeBase
 
   - method: POST
     match: '/support/api/account/**'
-    priority: 1000
+    priority: 500
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: knowledgeBase
 
   - method: PATCH
     match: '/support/api/account/**'
-    priority: 1000
+    priority: 500
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: knowledgeBase
 
   - method: PATCH
@@ -290,5 +372,5 @@ rules:
     tuples:
       - user_resource_type: user
         permission: can_access
-        object_resource_type: support/feature
+        object_resource_type: support_feature
         object_resource_id: knowledgeBase
